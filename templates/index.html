@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Attendance</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            color: white;
+            text-align: center;
+        }
+
+        .box {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            margin: 20px auto;
+            width: 80%;
+            border-radius: 15px;
+        }
+
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 8px;
+            border: none;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            background: white;
+            color: black;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>🎓 Smart Attendance System</h1>
+
+<div class="box">
+    <h2>Register Student</h2>
+    <input id="name" placeholder="Name">
+    <input id="roll" placeholder="Roll No">
+    <button onclick="register()">Register</button>
+</div>
+
+<div class="box">
+    <h2>Actions</h2>
+    <button onclick="train()">Train Model</button>
+    <button onclick="startCamera()">Start Attendance</button>
+    <button onclick="download()">Download CSV</button>
+</div>
+
+<div class="box">
+    <h2>Attendance</h2>
+    <table id="table">
+        <tr><th>Name</th><th>Roll</th><th>Date</th><th>Time</th></tr>
+    </table>
+</div>
+
+<video id="video" width="300" autoplay></video>
+
+<script>
+let video = document.getElementById("video");
+
+function startCamera(){
+    navigator.mediaDevices.getUserMedia({video:true})
+    .then(stream => video.srcObject = stream);
+
+    setInterval(capture, 3000);
+}
+
+function capture(){
+    let canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    let ctx = canvas.getContext("2d");
+    ctx.drawImage(video,0,0);
+
+    let img = canvas.toDataURL("image/jpeg");
+
+    fetch("/recognize", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({image:img})
+    })
+    .then(r=>r.json())
+    .then(data=>updateTable());
+}
+
+function register(){
+    let name = document.getElementById("name").value;
+    let roll = document.getElementById("roll").value;
+
+    alert("Capture faces using camera (auto in next version)");
+}
+
+function train(){
+    fetch("/train",{method:"POST"})
+    .then(r=>r.json())
+    .then(d=>alert(d.msg));
+}
+
+function updateTable(){
+    fetch("/attendance")
+    .then(r=>r.json())
+    .then(data=>{
+        let table = document.getElementById("table");
+        table.innerHTML = "<tr><th>Name</th><th>Roll</th><th>Date</th><th>Time</th></tr>";
+
+        data.forEach(a=>{
+            table.innerHTML += `<tr>
+                <td>${a.name}</td>
+                <td>${a.roll}</td>
+                <td>${a.date}</td>
+                <td>${a.time}</td>
+            </tr>`;
+        });
+    });
+}
+
+function download(){
+    window.location.href="/download";
+}
+</script>
+
+</body>
+</html>
